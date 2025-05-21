@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Page,
   Button,
@@ -11,21 +10,25 @@ import {
   useIndexResourceState,
   useBreakpoints,
   Text,
-  Pagination
+  Pagination,
+  Spinner
 } from '@shopify/polaris';
 import {
-  EditIcon, DeleteIcon
+  EditIcon,
+  DeleteIcon
 } from '@shopify/polaris-icons';
+
 const NewPage = () => {
   const isSmallScreen = useBreakpoints().smDown;
   const navigate = useNavigate();
-  const [orders, setorders] = useState([])
+  const location = useLocation();
+
+  const [orders, setOrders] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
-  const ordersPerPage = 10;
   const [shop, setShop] = useState('');
-  const [Loading, setLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
-
+  const ordersPerPage = 10;
   const totalPages = Math.ceil(orders.length / ordersPerPage);
   const startIndex = (currentPage - 1) * ordersPerPage;
   const endIndex = startIndex + ordersPerPage;
@@ -36,37 +39,47 @@ const NewPage = () => {
     plural: 'orders',
   };
 
-  const { selectedResources, allResourcesSelected, handleSelectionChange } =
-    useIndexResourceState(orders);
+  const {
+    selectedResources,
+    allResourcesSelected,
+    handleSelectionChange
+  } = useIndexResourceState(orders);
 
-  const rowMarkup = paginatedOrders.map(({ id, name, status, priority, clicks }, index) => (
-    <IndexTable.Row
-      id={id}
-      key={id}
-      selected={selectedResources.includes(id)}
-      position={index}
-      onClick={(e) => { e.preventDefault(); }}
-    >
-      <IndexTable.Cell>
-        <Text as="span" fontWeight="bold">{name}</Text>
-      </IndexTable.Cell>
-      <IndexTable.Cell>{status}</IndexTable.Cell>
-      <IndexTable.Cell>
-        <Text as="span">{priority}</Text>
-      </IndexTable.Cell>
-      <IndexTable.Cell>
-        <Text as="span">{clicks}</Text>
-      </IndexTable.Cell>
-      <IndexTable.Cell>
-          <div style={{ display: "flex", gap: "5px" }}>
-            <Button onClick={() => navigate('/edit?id='+ id)} icon={EditIcon} variant="tertiary" />
+  const handleSubmit = async (payload) => {
+    const url = "/get_charts";
+    try {
+      setIsLoading(false); // Show loading state
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
 
-          <Button onClick={() => delrowchart(id)}  icon={DeleteIcon} variant="tertiary" />
-        </div>
-      </IndexTable.Cell>
-    </IndexTable.Row>
-  ));
-  const delrowchart = async (id) => {
+      if (!response.ok) {
+        throw new Error(`Response status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const transformedOrders = data.map((chart) => ({
+        id: chart.id.toString(),
+        name: chart.name,
+        status: chart.status === "true"
+          ? <Badge tone="success">Active</Badge>
+          : <Badge>Draft</Badge>,
+        priority: chart.priority,
+        clicks: Math.floor(Math.random() * 100), // Replace with actual value if available
+      }));
+
+      setOrders(transformedOrders);
+      setIsLoading(true);
+    } catch (error) {
+      console.error("Error during fetch:", error.message);
+    }
+  };
+
+  const delRowChart = async (id) => {
     const url = "/dell_chart";
     try {
       const response = await fetch(url, {
@@ -80,30 +93,25 @@ const NewPage = () => {
       if (!response.ok) {
         throw new Error(`Response status: ${response.status}`);
       }
+
       const data = await response.json();
-      const transformedOrders = data.map((chart, index) => ({
+      const transformedOrders = data.map((chart) => ({
         id: chart.id.toString(),
         name: chart.name,
-        status: chart.status == "true"
+        status: chart.status === "true"
           ? <Badge tone="success">Active</Badge>
           : <Badge>Draft</Badge>,
         priority: chart.priority,
         clicks: Math.floor(Math.random() * 100),
       }));
 
-      setorders(transformedOrders);
+      setOrders(transformedOrders);
     } catch (error) {
-      console.error("Error during fetch:", error.message);
+      console.error("Error deleting chart:", error.message);
     }
-  }
-  const promotedBulkActions = [
-    {
-      content: 'Delete All',
-      icon: DeleteIcon,
-      onAction: () => { dell_all(selectedResources) },
-    }
-  ];
-  const dell_all = async (payload) => {
+  };
+
+  const deleteAllCharts = async (selectedIds) => {
     const url = "/dell_all_charts";
     try {
       const response = await fetch(url, {
@@ -111,57 +119,61 @@ const NewPage = () => {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(selectedIds),
       });
 
       if (!response.ok) {
         throw new Error(`Response status: ${response.status}`);
       }
-      handleSubmit(shopParam);
+
+      await handleSubmit(shop); // Re-fetch updated data
     } catch (error) {
-      console.error("Error during fetch:", error.message);
+      console.error("Error deleting all charts:", error.message);
     }
   };
-  const handleSubmit = async (payload) => {
-    const url = "/get_charts";
-    try {
-      const response = await fetch(url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
 
-      if (!response.ok) {
-        throw new Error(`Response status: ${response.status}`);
-      }
-      const data = await response.json();
-      const transformedOrders = data.map((chart, index) => ({
-        id: chart.id.toString(),
-        name: chart.name,
-        status: chart.status == "true"
-          ? <Badge tone="success">Active</Badge>
-          : <Badge>Draft</Badge>,
-        priority: chart.priority,
-        clicks: Math.floor(Math.random() * 100),
-      }));
-
-      setorders(transformedOrders);
-      setLoading(true);
-    } catch (error) {
-      console.error("Error during fetch:", error.message);
+  const promotedBulkActions = [
+    {
+      content: 'Delete All',
+      icon: DeleteIcon,
+      onAction: () => deleteAllCharts(selectedResources),
     }
-  };
+  ];
+
+  const rowMarkup = paginatedOrders.map(({ id, name, status, priority, clicks }, index) => (
+    <IndexTable.Row
+      id={id}
+      key={id}
+      selected={selectedResources.includes(id)}
+      position={index}
+      onClick={(e) => e.preventDefault()}
+    >
+      <IndexTable.Cell>
+        <Text as="span" fontWeight="bold">{name}</Text>
+      </IndexTable.Cell>
+      <IndexTable.Cell>{status}</IndexTable.Cell>
+      <IndexTable.Cell>
+        <Text as="span">{priority}</Text>
+      </IndexTable.Cell>
+      <IndexTable.Cell>
+        <Text as="span">{clicks}</Text>
+      </IndexTable.Cell>
+      <IndexTable.Cell>
+        <div style={{ display: "flex", gap: "5px" }}>
+          <Button onClick={() => navigate('/edit?id=' + id)} icon={EditIcon} variant="tertiary" />
+          <Button onClick={() => delRowChart(id)} icon={DeleteIcon} variant="tertiary" />
+        </div>
+      </IndexTable.Cell>
+    </IndexTable.Row>
+  ));
+
   useEffect(() => {
     const shopParam = document.getElementById('usernamemain')?.value;
     if (shopParam) {
       setShop(shopParam);
       handleSubmit(shopParam);
     }
-  }, []);
-
-
+  }, [location.pathname]);
 
   return (
     <Page
@@ -171,12 +183,13 @@ const NewPage = () => {
       primaryAction={
         <Button variant="primary" onClick={() => navigate('/create')}>
           Create Chart
-        </Button>}
+        </Button>
+      }
     >
       <Layout>
         <Layout.Section>
           <LegacyCard>
-            {Loading ?
+            {isLoading ? (
               <>
                 <IndexTable
                   condensed={isSmallScreen}
@@ -206,7 +219,11 @@ const NewPage = () => {
                   />
                 </div>
               </>
-              : ''}
+            ) : (
+              <div style={{ padding: "40px", textAlign: "center" }}>
+                <Spinner accessibilityLabel="Loading charts" size="large" />
+              </div>
+            )}
           </LegacyCard>
         </Layout.Section>
       </Layout>

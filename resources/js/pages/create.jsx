@@ -106,7 +106,7 @@ export default function Create() {
       label: "Womens Tops",
       headers: ["Size", "Chest", "Waist", "Hips"]      ,
       imgSrc: 'https://cdnapps.avada.io/sizechart/onboardingImages/womanTop.svg',
-      title: "<h1>Women's Top Size Chart/h1>",
+      title: "<h1>Women's Top Size Chart</h1>",
       subtitle: "<p>This size chart is to determine your top's size. If any of your measurement is on the borderline between two sizes, you can pick the smaller size for a tighter fit or the larger size for a looser fit. If your chest and waist measurements correspond to two different suggested sizes, you should order the one which is indicated by the measurement of your chest./p>",
       data: [["S", "13", "23", "33"], ["M", "13", "23", "33"], ["L", "13", "23", "33"],],
       url: [
@@ -200,16 +200,16 @@ export default function Create() {
        
       ]
     },
-    {
-      id: '12',
-      label: "None",
-      headers: ["Size", "Bust", "Waist", "Hip"],
-      imgSrc: 'https://cdnapps.avada.io/sizechart/onboardingImages/none.svg',
-      title: "<h1>Title 6</h1>",
-      subtitle: "<h1>This size chart is to determine your shoe size. If any of your measurement is on the borderline between two sizes, you can pick the smaller size for a tighter fit or the larger size for a looser fit.</h1>",
-      data: [["S", "15", "25", "35"], ["M", "15", "25", "35"], ["L", "15", "25", "35"],],
-     
-    }
+   {
+  id: '12',
+  label: "None",
+  headers: [],
+  imgSrc: 'https://cdnapps.avada.io/sizechart/onboardingImages/none.svg',
+  title: "<h1></h1>",
+  subtitle: "<h1>This size chart is to determine your shoe size. If any of your measurement is on the borderline between two sizes, you can pick the smaller size for a tighter fit or the larger size for a looser fit.</h1>",
+  data: [],
+  url: [] 
+}
   ];
 
   const tabs = [
@@ -221,7 +221,11 @@ export default function Create() {
 
   const handleChange = useCallback(
     (newValue) => setValue(newValue),
+    
     [],
+     shopify.saveBar.show('my-save-bar')
+   
+
   );
 
   const [value2, setValue2] = useState('0');
@@ -229,36 +233,45 @@ export default function Create() {
   const handleChange2 = useCallback(
     (newValue) => setValue2(newValue),
     [],
+     shopify.saveBar.show('my-save-bar')
   );
   const [isChecked, setIsChecked] = useState(false);
   const handleToggle = () => {
     setIsChecked(!isChecked);
+     shopify.saveBar.show('my-save-bar')
   };
   const [isCheckedp1, setIsCheckedp1] = useState(false);
   const handleTogglep1 = () => {
     setIsCheckedp1(!isCheckedp1);
+
+     shopify.saveBar.show('my-save-bar')
   };
   const [isChecked2, setIsChecked2] = useState(false);
   const handleToggle2 = () => {
     setIsChecked2(!isChecked2);
+     shopify.saveBar.show('my-save-bar')
   };
   const [value3, setValue3] = useState('disabled');
 
   const handleChange3 = useCallback(
     (_, newValue) => setValue3(newValue),
+    
     [],
+     shopify.saveBar.show('my-save-bar')
   );
   const [value8, setValue8] = useState('disabled');
 
   const handleChange8 = useCallback(
     (_, newValue) => setValue8(newValue),
     [],
+     shopify.saveBar.show('my-save-bar')
   );
   const [value4, setValue4] = useState('option1');
 
   const handleChange6 = useCallback(
     (_, newValue) => setValue4(newValue),
     [],
+     shopify.saveBar.show('my-save-bar')
   );
   const [checked, setChecked] = useState(false);
   const handleChange4 = useCallback(
@@ -269,12 +282,14 @@ export default function Create() {
   const handleChange5 = useCallback(
     (newChecked) => setChecked1(newChecked),
     [],
+     shopify.saveBar.show('my-save-bar')
   );
   const [popoverActive, setPopoverActive] = useState(false);
 
   const togglePopoverActive = useCallback(
     () => setPopoverActive((popoverActive) => !popoverActive),
     [],
+     shopify.saveBar.show('my-save-bar')
   );
 
   const activator = (
@@ -322,36 +337,60 @@ export default function Create() {
     }
   };
 
-  const exportTable = () => {
-    const tableData = { headers, data, unit };
-    const blob = new Blob([JSON.stringify(tableData, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "table-data.json";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
+ const exportTable = () => {
+  // Combine headers and data into CSV format
+  const csvContent = [
+    headers.join(','), // Header row
+    ...data.map(row => row.join(',')) // Data rows
+  ].join('\n');
+
+  // Include unit as a separate row or metadata if needed
+  const finalCsv = `Unit,${unit}\n${csvContent}`;
+
+  const blob = new Blob([finalCsv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'table-data.csv';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+};
 
   const importTable = (event) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        try {
-          const { headers: newHeaders, data: newData, unit: newUnit } = JSON.parse(e.target?.result);
-          setHeaders(newHeaders);
-          setData(newData);
-          setUnit(newUnit || "cm");
-        } catch (error) {
-          alert("Invalid file format");
+  const file = event.target.files?.[0];
+  if (file && file.type === 'text/csv') {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const text = e.target?.result;
+        const rows = text.split('\n').map(row => row.split(',').map(cell => cell.trim()));
+
+        // Check if the first row is the unit metadata
+        let newUnit = 'cm'; // Default unit
+        let startRow = 0;
+        if (rows[0][0].toLowerCase() === 'unit') {
+          newUnit = rows[0][1] || 'cm';
+          startRow = 1; // Skip the unit row
         }
-      };
-      reader.readAsText(file);
-    }
-  };
+
+        // Extract headers and data
+        const newHeaders = rows[startRow];
+        const newData = rows.slice(startRow + 1).filter(row => row.length === newHeaders.length && row.some(cell => cell !== ''));
+
+        setHeaders(newHeaders);
+        setData(newData);
+        setUnit(newUnit);
+      } catch (error) {
+        alert('Invalid CSV file format');
+      }
+    };
+    reader.readAsText(file);
+  } else {
+    alert('Please upload a valid CSV file');
+  }
+};
   const openform = () => {
     document.getElementById('fileInput').click();
 
@@ -440,11 +479,16 @@ export default function Create() {
   const toggleModal = () => setActive(!active);
 
   //save data logic
-  const handleSave = () => {
-    console.log('Saving');
-    handleSubmit( )
-    shopify.saveBar.hide('my-save-bar');
-  };
+  const formRef = useRef(null);
+
+const handleSave = () => {
+  console.log('Saving');
+  if (formRef.current) {
+    const fakeEvent = { preventDefault: () => {}, target: formRef.current };
+    handleSubmit(fakeEvent);
+  }
+  shopify.saveBar.hide('my-save-bar');
+};
   const handleDiscard = () => {
     console.log('Discarding');
     shopify.saveBar.hide('my-save-bar');
@@ -460,11 +504,11 @@ export default function Create() {
     >
       
       <SaveBar id="my-save-bar">
-        <button variant="primary" onClick={handleSave}></button>
-        <button onClick={handleDiscard}></button>
-      </SaveBar>
+  <button variant="primary" onClick={handleSave}>Save</button>
+  <button onClick={handleDiscard}>Discard</button>
+</SaveBar>
     <div style={{ width:'70%'}}></div>
-      <form method="post" onSubmit={handleSubmit}>
+      <form method="post"   ref={formRef} onSubmit={handleSubmit}>
         <input type='hidden' value={value} name='name' />
         <input type='hidden' value={value2} name='priority' />
         <input type='hidden' value={isChecked} name='status' />
@@ -541,7 +585,7 @@ export default function Create() {
                       <div style={{ display: "flex", gap: "10px", flexDirection: "column" }}>
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
 
-                          <Button>Full Screen</Button>
+                          <Button >Full Screen</Button>
                           <Popover
                             active={popoverActive}
                             activator={activator}
@@ -759,6 +803,7 @@ export default function Create() {
                           value={value}
                           onChange={handleChange}
                           autoComplete="off"
+                          
                         />
                         <TextField
                           label="Priority"
