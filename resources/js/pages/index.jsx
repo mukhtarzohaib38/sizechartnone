@@ -146,7 +146,7 @@ const NewPage = () => {
       key={id}
       selected={selectedResources.includes(id)}
       position={index}
-      onClick={(e) => e.preventDefault()}
+   
     >
       <IndexTable.Cell>
         <Text as="span" fontWeight="bold">{name}</Text>

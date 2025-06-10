@@ -15,8 +15,8 @@ import { DesktopIcon, MarketsRupeeFilledIcon } from '@shopify/polaris-icons';
 import {  Card,SkeletonBodyText, SkeletonDisplayText ,Modal,TextContainer} from '@shopify/polaris';
 export default function Create() {
   const navigate = useNavigate();
-  const [value7, setValue7] = useState("<h1>Title 1</h1>");
-  const [value71, setValue71] = useState("<h1>Sub Title 1</h1>");
+  const [value7, setValue7] = useState("");
+  const [value71, setValue71] = useState("");
   const [QuillEditor, setQuillEditor] = useState(null);
   const quillRef = useRef(null);
       const [shop, setShop] = useState('');
@@ -56,7 +56,7 @@ export default function Create() {
 
 
   const [selectedTab, setSelectedTab] = useState(0);
-  const [selectedPreset, setSelectedPreset] = useState('Men 1');
+  const [selectedPreset, setSelectedPreset] = useState();
 
   const handleTabChange = useCallback(
     (selectedTabIndex) => setSelectedTab(selectedTabIndex),
@@ -145,7 +145,7 @@ export default function Create() {
       imgSrc: 'https://cdnapps.avada.io/sizechart/onboardingImages/girlTop.svg',
       title: "<h1>Girl's Top Size Chart</h1>",
       subtitle: "<p>This size chart is to determine your top's size. If any of your measurement is on the borderline between two sizes, you can pick the smaller size for a tighter fit or the larger size for a looser fit. If your chest and waist measurements correspond to two different suggested sizes, you should order the one which is indicated by the measurement of your chest.</p>",
-      data: [["S", "10", "20", "30"], ["M", "10", "20", "30"], ["L", "10", "20", "30"],],
+      data: [["S", "10", "20", "30",'34'], ["M", "10", "20", "30",'34'], ["L", "10", "20", "30",'34'],],
       url: [
         "https://cdn.shopify.com/s/files/1/0868/9991/7135/files/Girl_Top.png?v=1741975229"
       ]
@@ -157,7 +157,7 @@ export default function Create() {
       imgSrc: 'https://cdnapps.avada.io/sizechart/onboardingImages/girlBot.svg',
       title: "<h1>Girl's Bottom Size Chart</h1>",
       subtitle: "<p>This size chart is to determine your bottom's size. If any of your measurement is on the borderline between two sizes, you can pick the smaller size for a tighter fit or the larger size for a looser fit.</p>",
-      data: [["S", "11", "21", "31"], ["M", "11", "21", "31"], ["L", "11", "21", "31"],],
+      data: [["3", "11", "21", "31", "21", "31"], ["5", "11", "21", "31", "21", "31"], ["6", "11", "21", "31", "21", "31"],],
       url: [
         "https://cdn.shopify.com/s/files/1/0868/9991/7135/files/Girl_Bottom.png?v=1741975230",
        
@@ -182,7 +182,7 @@ export default function Create() {
       imgSrc: 'https://cdnapps.avada.io/sizechart/onboardingImages/boyBot.svg',
       title: "<h1>Boy's Bottom Size Chart</h1>",
       subtitle: "<p>This size chart is to determine your bottom's size. If any of your measurement is on the borderline between two sizes, you can pick the smaller size for a tighter fit or the larger size for a looser fit.</p>",
-      data: [["S", "13", "23", "33"], ["M", "13", "23", "33"], ["L", "13", "23", "33"],],
+      data: [["S", "13", "23", "33","22","34"], ["M", "13", "23", "33","22","34"], ["L", "13", "23", "33","22","34"],],
       url: [
         "https://cdn.shopify.com/s/files/1/0868/9991/7135/files/Boy_Bottom.png?v=1741975230"
       ]
@@ -217,7 +217,7 @@ export default function Create() {
     { id: 'step2', content: 'Step 2: Settings', panelID: 'step2-settings' },
   ];
 
-  const [value, setValue] = useState('Jaded Pixel');
+  const [value, setValue] = useState('Size Chart');
 
   const handleChange = useCallback(
     (newValue) => setValue(newValue),
@@ -328,14 +328,15 @@ export default function Create() {
   };
 
   const toggleFullscreen = () => {
-    if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen();
-      setIsFullscreen(true);
-    } else {
-      document.exitFullscreen();
-      setIsFullscreen(false);
-    }
-  };
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen();
+    setIsFullscreen(true);
+  } else {
+    document.exitFullscreen();
+    setIsFullscreen(false);
+  }
+  shopify.saveBar.show('my-save-bar');
+};
 
  const exportTable = () => {
   // Combine headers and data into CSV format
@@ -493,12 +494,54 @@ const handleSave = () => {
     console.log('Discarding');
     shopify.saveBar.hide('my-save-bar');
   };
+
+  //change the url code
+  const [urlInput, setUrlInput] = useState('');
+  const [popoverActiveUrl, setPopoverActiveUrl] = useState(false);
+  const togglePopoverActiveUrl = useCallback(() => {
+  setPopoverActiveUrl((prev) => !prev);
+  shopify.saveBar.show('my-save-bar');
+}, []);
+
+const handleUrlChange = useCallback((newValue) => {
+  setUrlInput(newValue);
+}, []);
+
+const handleUrlSubmit = useCallback(() => {
+  if (
+    urlInput &&
+    /^https?:\/\/.*\.(png|jpg|jpeg|gif|bmp|webp|svg|tiff?)(\?.*)?$/i.test(urlInput)
+  ) {
+    setImageUrls((prev) => [...prev, urlInput]);
+    setUrlInput('');
+    setPopoverActiveUrl(false);
+    shopify.saveBar.show('my-save-bar');
+  } else {
+    shopify.toast.show(
+      'Please enter a valid image URL (must end with a supported image extension)',
+      { tone: 'critical' }
+    );
+  }
+}, [urlInput]);
+
+
+
+
+const urlActivator = (
+  <Button variant="tertiary" onClick={togglePopoverActiveUrl}>Change The URL</Button>
+);
   
   return (
     <div style={{width:'100%', display:'flex'}}>
     <Page
       fullWidth
-      backAction={{ content: 'Back', onAction: () => navigate('/') }}
+    backAction={{
+  content: 'Back',
+  onAction: () => {
+    shopify.saveBar.hide('my-save-bar');
+    navigate('/');
+  },
+}}
       title={value}
       titleMetadata={isChecked ? <Badge tone='success'>Active</Badge> :<Badge>Draft</Badge>}
     >
@@ -585,7 +628,9 @@ const handleSave = () => {
                       <div style={{ display: "flex", gap: "10px", flexDirection: "column" }}>
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
 
-                          <Button >Full Screen</Button>
+                        <Button onClick={toggleFullscreen}>
+  {isFullscreen ? 'Exit Full Screen' : 'Full Screen'}
+</Button>
                           <Popover
                             active={popoverActive}
                             activator={activator}
@@ -760,16 +805,35 @@ const handleSave = () => {
                               ))}
                             </LegacyStack>
                             <LegacyStack spacing="tight">
-                              <Popover
-                                active={popoverActive7}
-                                activator={<Button primary onClick={() => setPopoverActive7(!popoverActive7)}>Change Image</Button>}
-                                onClose={() => setPopoverActive7(false)}
-                              >
-                                <ActionList
-                                  items={[{ content: "Upload File", onAction: () => document.querySelector("input[type=file]").click() }]}
-                                />
-                              </Popover>
-                              <Button variant="tertiary" >Change From URL</Button>
+                             <Popover
+                                  active={popoverActive7}
+                                  activator={<Button primary onClick={() => setPopoverActive7(!popoverActive7)}>Change Image</Button>}
+                                  onClose={() => setPopoverActive7(false)}
+                                >
+                                  <ActionList
+                                    items={[{ content: "Upload File", onAction: () => document.querySelector("input[type=file]").click() }]}
+                                  />
+                                </Popover>
+                                <Popover
+                                  active={popoverActiveUrl}
+                                  activator={urlActivator}
+                                  autofocusTarget="first-node"
+                                  onClose={togglePopoverActiveUrl}
+                                >
+                                  <div style={{ padding: '16px', width: '300px' }}>
+                                    <TextField
+                                      label="Enter Image URL"
+                                      value={urlInput}
+                                      onChange={handleUrlChange}
+                                      autoComplete="off"
+                                      placeholder="https://example.com/image.png"
+                                    />
+                                    <div style={{ marginTop: '8px', display: 'flex', justifyContent: 'flex-end' }}>
+                                      <Button primary onClick={handleUrlSubmit}>Add URL</Button>
+                                    </div>
+                                  </div>
+                                </Popover>
+                            
                             </LegacyStack>
                             <Text variant="bodyMd" as="p">Accepts .jpg, .png</Text>
                           </LegacyStack>

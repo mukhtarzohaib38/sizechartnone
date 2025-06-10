@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\WebhooksController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Http;  // <-- Add this
 
 Route::get('/', function () {
     return view('welcome');
@@ -20,7 +21,6 @@ Route::get('/{any}', function () {
     return view('welcome');
 })->where('any', '.*')->middleware(['verify.shopify']);
 
-
 Route::post('/upload', function (Request $request) {
     $uploadedUrls = [];
 
@@ -34,10 +34,20 @@ Route::post('/upload', function (Request $request) {
 
     return response()->json(['urls' => $uploadedUrls]);
 });
+
 Route::post('/save_chart', [ChartController::class, 'save_chart']);
 Route::post('/get_charts', [ChartController::class, 'get_charts']);
 Route::post('/dell_chart', [ChartController::class, 'dell_chart']);
 Route::post('/dell_all_charts', [ChartController::class, 'dell_all_charts']);
 Route::get('/edit/{id}', [ChartController::class, 'edit']);
-Route::post('/get_chart', [ChartController::class, 'get_chart']);
 
+// Proxy request added inside this route
+Route::post('/get_chart', function (Request $request) {
+    $externalApiUrl = 'https://example.com/api/chart'; // <-- Replace with your external API URL
+
+    // Proxy the incoming request data to the external API
+    $response = Http::post($externalApiUrl, $request->all());
+
+    // Return the external API's response as JSON
+    return response()->json($response->json());
+});
